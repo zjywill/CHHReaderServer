@@ -18,7 +18,7 @@ nginx:
   restart: always
   build: ./nginx/
   ports:
-    - "80:80"
+    - "8080:80"
   volumes:
     - /www/static
   volumes_from:
@@ -41,3 +41,7 @@ redis:
     - "6379:6379"
   volumes:
     - redisdata:/data
+
+cron:
+  restart: always
+  build: ./cron/
