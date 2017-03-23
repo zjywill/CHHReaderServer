@@ -18,9 +18,15 @@ from .models import Topic, Item, ItemData, Content
 
 def topic(request):
     topic_list = Topic.objects.filter(is_valid=True)
-    data = serializers.serialize("json", topic_list)
     if len(topic_list) == 0:
         return HttpResponseNotFound()
+    data_list = []
+    for topic_data in topic_list:
+        topic_item = {}
+        topic_item['name'] = topic_data.name
+        topic_item['source_link'] = topic_data.source_link
+        data_list.append(topic_item)
+    data = json.dumps(data_list)
     return HttpResponse(data, content_type="application/json; charset=utf-8")
 
 
