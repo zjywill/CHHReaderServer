@@ -13,20 +13,8 @@ class Topic(models.Model):
         return self.name
 
 
-class Item(models.Model):
-    topic = models.ForeignKey(Topic, related_name='topic_item')
-    name = models.CharField(max_length=64)  # option,
-    source_link = models.CharField(max_length=255, blank=True, null=False, unique=True)
-    source_update_at = models.DateTimeField(auto_now_add=True)
-    order = models.IntegerField(default=1)
-    is_valid = models.BooleanField(default=False)
-
-    def __unicode__(self):
-        return self.name
-
-
 class ItemData(models.Model):
-    item = models.ForeignKey(Item, related_name='item_data')
+    topic = models.ForeignKey(Topic, related_name='topic_item')
     name = models.CharField(max_length=100)
     link = models.CharField(max_length=255, blank=True, null=False, unique=True)
     image_url = models.CharField(max_length=255, blank=True, null=True)
@@ -43,4 +31,4 @@ class Content(models.Model):
     content = models.TextField()
 
     def __unicode__(self):
-        return self.rootlink
+        return self.root_link

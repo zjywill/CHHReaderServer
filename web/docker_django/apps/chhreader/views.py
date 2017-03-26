@@ -11,7 +11,7 @@ import os
 from HTMLParser import HTMLParser
 from HTMLParser import HTMLParseError
 import time
-from .models import Topic, Item, ItemData, Content
+from .models import Topic, ItemData, Content
 
 
 # Create your views here.
@@ -23,32 +23,11 @@ def topic(request):
     data_list = []
     for topic_data in topic_list:
         topic_item = {}
+        topic_item['id'] = topic_data.id
         topic_item['name'] = topic_data.name
         topic_item['source_link'] = topic_data.source_link
         data_list.append(topic_item)
     data = json.dumps(data_list)
-    return HttpResponse(data, content_type="application/json; charset=utf-8")
-
-
-def subtopic(request, topic_id):
-    item_list = []
-    if topic_id > 0:
-        try:
-            topic = Topic.objects.get(id=topic_id)
-            item_list = Item.objects.filter(topic=topic, is_valid=True)
-        except Topic.DoesNotExist:
-            pass
-    if len(item_list) == 0:
-        return HttpResponseNotFound()
-    data = serializers.serialize("json", item_list)
-    return HttpResponse(data, content_type="application/json; charset=utf-8")
-
-
-def item(request):
-    item_list = Item.objects.filter(is_valid=True)
-    data = serializers.serialize("json", item_list)
-    if len(item_list) == 0:
-        return HttpResponseNotFound()
     return HttpResponse(data, content_type="application/json; charset=utf-8")
 
 
@@ -113,7 +92,7 @@ def updatas(request):
     # get raw post data  and parse json.
     # print request.method
     if request.method == 'POST':
-        pk = request.POST.get('pk')
+        topic_id = request.POST.get('topic_id')
         data = request.POST.get('list')
         jsondata = json.loads(data, encoding='utf-8')
         # print type(data)
@@ -122,11 +101,12 @@ def updatas(request):
         for i in range(len(jsondata)):
             link = jsondata[i][1]
             try:
-                ItemData.objects.get(item_id=pk, link=link)
+                ItemData.objects.get(link=link)
                 print 'exist'
             except ItemData.DoesNotExist:
-                i = ItemData.objects.create(item_id=pk, name=jsondata[i][0], link=jsondata[i][1],
-                                            imageurl=jsondata[i][2], content=jsondata[i][3], postdate=jsondata[i][4],
+                topic_item = Topic.objects.get(id=topic_id)
+                i = ItemData.objects.create(topic=topic_item, name=jsondata[i][0], link=jsondata[i][1],
+                                            image_url=jsondata[i][2], content=jsondata[i][3], postdate=jsondata[i][4],
                                             is_valid=True)
                 i.save()
                 print 'added'
