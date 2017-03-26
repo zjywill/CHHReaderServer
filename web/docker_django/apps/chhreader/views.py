@@ -16,7 +16,7 @@ from .models import Topic, ItemData, Content
 
 # Create your views here.
 
-def topic(request):
+def topics(request):
     topic_list = Topic.objects.filter(is_valid=True)
     if len(topic_list) == 0:
         return HttpResponseNotFound()
@@ -31,7 +31,17 @@ def topic(request):
     return HttpResponse(data, content_type="application/json; charset=utf-8")
 
 
-def post(request):
+@csrf_exempt
+def articles(request):
+    if request.method == 'GET':
+        return get_articles(request)
+    elif request.method == 'POST':
+        return post_articles(request)
+    else:
+        return HttpResponseNotFound()
+
+
+def get_articles(request):
     itempage = request.GET.get('page', 1)
     pagesize = request.GET.get('pagesize', 20)
     itempage = int(itempage)
@@ -42,9 +52,41 @@ def post(request):
         content_list = ItemData.objects.all().order_by('-postdate')[beginnum:endnum]
         if len(content_list) == 0:
             return HttpResponseNotFound()
-        data = serializers.serialize("json", content_list)
+        data_list = []
+        for article_data in content_list:
+            article_item = {}
+            article_item['id'] = article_data.id
+            article_item['name'] = article_data.name
+            article_item['topic'] = article_data.topic.name
+            article_item['link'] = article_data.link
+            article_item['image_url'] = article_data.image_url
+            article_item['content'] = article_data.content
+            article_item['postdate'] = article_data.postdate
+            data_list.append(article_item)
+        data = json.dumps(data_list)
         return HttpResponse(data, content_type="application/json; charset=utf-8")
     return HttpResponseNotFound()
+
+
+def post_articles(request):
+    topic_id = request.POST.get('topic_id')
+    data = request.POST.get('list')
+    jsondata = json.loads(data, encoding='utf-8')
+    # print type(data)
+    # print type(jsondata)
+    # print jsondata
+    for i in range(len(jsondata)):
+        link = jsondata[i][1]
+        try:
+            ItemData.objects.get(link=link)
+            print 'exist'
+        except ItemData.DoesNotExist:
+            i = ItemData.objects.create(topic_id=topic_id, name=jsondata[i][0], link=jsondata[i][1],
+                                        image_url=jsondata[i][2], content=jsondata[i][3], postdate=jsondata[i][4],
+                                        is_valid=True)
+            i.save()
+            print 'added'
+    return HttpResponse("[post ok]", content_type="text/plain; charset=utf-8")
 
 
 def content(request):
@@ -84,31 +126,4 @@ def updateContent(request):
             Content.objects.create(rootlink=link, content=content)
 
         return HttpResponse(link + content, content_type="text/plain; charset=utf-8")
-    return HttpResponse('[ok]', content_type="text/plain; charset=utf-8")
-
-
-@csrf_exempt
-def updatas(request):
-    # get raw post data  and parse json.
-    # print request.method
-    if request.method == 'POST':
-        topic_id = request.POST.get('topic_id')
-        data = request.POST.get('list')
-        jsondata = json.loads(data, encoding='utf-8')
-        # print type(data)
-        # print type(jsondata)
-        # print jsondata
-        for i in range(len(jsondata)):
-            link = jsondata[i][1]
-            try:
-                ItemData.objects.get(link=link)
-                print 'exist'
-            except ItemData.DoesNotExist:
-                topic_item = Topic.objects.get(id=topic_id)
-                i = ItemData.objects.create(topic=topic_item, name=jsondata[i][0], link=jsondata[i][1],
-                                            image_url=jsondata[i][2], content=jsondata[i][3], postdate=jsondata[i][4],
-                                            is_valid=True)
-                i.save()
-                print 'added'
-        return HttpResponse("[post ok]", content_type="text/plain; charset=utf-8")
     return HttpResponse('[ok]', content_type="text/plain; charset=utf-8")
