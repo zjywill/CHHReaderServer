@@ -89,41 +89,46 @@ def post_articles(request):
     return HttpResponse("[post ok]", content_type="text/plain; charset=utf-8")
 
 
+@csrf_exempt
 def content(request):
-    contenturl = request.GET.get('link', 1)
-    contenturl = str(contenturl)
-    if len(contenturl) > 0:
-        content_list = Content.objects.filter(rootlink=contenturl)
-        data = serializers.serialize("json", content_list)
-        return HttpResponse(data, content_type="text/plain; charset=utf-8")
+    if request.method == 'POST':
+        root_link = request.POST.get('link')
+        content_detail = request.POST.get('content')
+        try:
+            item = ItemData.objects.get(link=root_link)
+            updateContent(root_link, content_detail)
+        except ItemData.DoesNotExist:
+            return HttpResponseNotFound()
+        return HttpResponse("[ok]", content_type="text/plain; charset=utf-8")
     else:
         return HttpResponseNotFound()
 
 
-def contentExist(request):
-    contenturl = request.GET.get('link', 1)
-    contenturl = str(contenturl)
-    if len(contenturl) > 0:
+def viewContent(request, query_id):
+    if request.method == 'GET':
+        query_link = ""
         try:
-            Content.objects.get(rootlink=contenturl)
-            return HttpResponse("ok", mimetype="text/plain; charset=utf-8")
+            item = ItemData.objects.get(id=query_id)
+            query_link = item.link
+        except ItemData.DoesNotExist:
+            return HttpResponseNotFound()
+        try:
+            content_data = Content.objects.get(root_link=query_link)
+            contentItem = {}
+            contentItem['link'] = content_data.root_link
+            contentItem['content'] = content_data.content
+            data = json.dumps(contentItem)
+            return HttpResponse(data, content_type="application/json; charset=utf-8")
         except Content.DoesNotExist:
-            return HttpResponse("fail", mimetype="text/plain; charset=utf-8")
+            return HttpResponseNotFound()
     else:
-        return HttpResponse("fail", mimetype="text/plain; charset=utf-8")
+        return HttpResponseNotFound()
 
 
-@csrf_exempt
-def updateContent(request):
-    if request.method == 'POST':
-        link = request.POST.get('link')
-        content = request.POST.get('content')
-        try:
-            datacontent = Content.objects.get(rootlink=link)
-            datacontent.content = content
-            datacontent.save()
-        except Content.DoesNotExist:
-            Content.objects.create(rootlink=link, content=content)
-
-        return HttpResponse(link + content, content_type="text/plain; charset=utf-8")
-    return HttpResponse('[ok]', content_type="text/plain; charset=utf-8")
+def updateContent(link, content):
+    try:
+        dataContent = Content.objects.get(root_link=link)
+        dataContent.content = content
+        dataContent.save()
+    except Content.DoesNotExist:
+        Content.objects.create(root_link=link, content=content)
